@@ -43,6 +43,11 @@ import org.quartz.CronExpression;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import org.apache.shiro.realm.Realm;
+import org.apache.shiro.realm.jdbc.JdbcRealm;
+import org.apache.shiro.realm.ldap.JndiLdapRealm;
+import org.apache.shiro.realm.text.IniRealm;
+
 import org.apache.zeppelin.annotation.ZeppelinApi;
 import org.apache.zeppelin.interpreter.InterpreterSetting;
 import org.apache.zeppelin.notebook.Note;
@@ -106,6 +111,59 @@ public class NotebookRestApi {
         "User belongs to: " + current.toString();
   }
 
+    void removeEmptyUsers(HashSet users) {
+    for (Iterator iterator = users.iterator(); iterator.hasNext();) {
+      Object item = iterator.next();
+      if (item == null || ((String) item).trim().isEmpty()) {
+        iterator.remove();
+      }
+    }
+  }
+
+  HashSet notfoundUsers(HashSet users, HashSet fullset) {
+    HashSet notfound = new HashSet();
+    
+    for (Iterator iterator = users.iterator(); iterator.hasNext();) {
+      Object user = iterator.next();
+      if (!fullset.contains(user)) {
+        notfound.add(user);
+      }
+    }
+
+    return notfound;
+  }
+
+  HashSet getAllUsers() {
+    HashSet userList = new HashSet();
+    try {
+      GetUserList getUserListObj = new GetUserList();
+      Collection realmsList = SecurityUtils.getRealmsList();
+      for (Iterator<Realm> iterator = realmsList.iterator(); iterator.hasNext(); ) {
+        Realm realm = iterator.next();
+        String name = realm.getName();
+        if (name.equals("iniRealm")) {
+          userList.addAll(getUserListObj.getUserList((IniRealm) realm));
+        } else if (name.equals("ldapRealm")) {
+          userList.addAll(getUserListObj.getUserList((JndiLdapRealm) realm));
+        } else if (name.equals("jdbcRealm")) {
+          userList.addAll(getUserListObj.getUserList((JdbcRealm) realm));
+        }
+      }
+
+    } catch (Exception e) {
+      LOG.error("Exception in retrieving Users from realms ", e);
+    }
+
+    return userList;
+  }
+
+  String notfoundUsersError(HashSet owners, HashSet readers, HashSet writers) {
+    return "Users not found.\n\n" + 
+            (owners.size() > 0 ? "Owners: " + owners.toString() + "\n\n" : "") + 
+            (readers.size() > 0 ? "Readers: " + readers.toString() + "\n\n" : "") + 
+            (writers.size() > 0 ? "Writers: " + writers.toString() : "");
+  }
+
   /**
    * set note authorization information
    */
@@ -139,9 +197,25 @@ public class NotebookRestApi {
     HashSet owners = permMap.get("owners");
     HashSet writers = permMap.get("writers");
 
-    RequestUtils.removeEmptyUser(readers);
-    RequestUtils.removeEmptyUser(owners);
-    RequestUtils.removeEmptyUser(writers);
+    removeEmptyUsers(owners);
+    removeEmptyUsers(readers);
+    removeEmptyUsers(writers);
+
+    HashSet users = getAllUsers();
+
+    HashSet notfoundOwners = notfoundUsers(owners, users);
+    HashSet notfoundReaders = notfoundUsers(readers, users);
+    HashSet notfoundWriters = notfoundUsers(writers, users);
+
+    if ( notfoundOwners.size() > 0 
+      || notfoundReaders.size() > 0 
+      || notfoundWriters.size() > 0
+    ) {
+      return new JsonResponse<>(Status.BAD_REQUEST, notfoundUsersError(
+        notfoundOwners, 
+        notfoundReaders, 
+        notfoundWriters)).build();
+    }
 
     // Set readers, if writers and owners is empty -> set to user requesting the change
     if (readers != null && !readers.isEmpty()) {
@@ -300,6 +374,14 @@ public class NotebookRestApi {
     }
 
     note.setName(noteName);
+
+    //if creator is not anonymous, set default owner to creator
+    if (SecurityUtils.getPrincipal() != "anonymous") {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(SecurityUtils.getPrincipal());
+      notebookAuthorization.setOwners(note.id(), defaultOwners);
+    }
+
     note.persist(subject);
     notebookServer.broadcastNote(note);
     notebookServer.broadcastNoteList(subject);
