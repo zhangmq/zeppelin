@@ -24,6 +24,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
+import java.util.Collection;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -46,6 +48,7 @@ import org.slf4j.LoggerFactory;
 import org.apache.shiro.realm.Realm;
 import org.apache.shiro.realm.jdbc.JdbcRealm;
 import org.apache.shiro.realm.ldap.JndiLdapRealm;
+import org.apache.zeppelin.server.ActiveDirectoryGroupRealm;
 import org.apache.shiro.realm.text.IniRealm;
 
 import org.apache.zeppelin.annotation.ZeppelinApi;
@@ -64,7 +67,6 @@ import org.apache.zeppelin.server.JsonResponse;
 import org.apache.zeppelin.socket.NotebookServer;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.apache.zeppelin.utils.SecurityUtils;
-import org.apache.zeppelin.utils.RequestUtils;
 
 /**
  * Rest api endpoint for the noteBook.
@@ -111,7 +113,7 @@ public class NotebookRestApi {
         "User belongs to: " + current.toString();
   }
 
-    void removeEmptyUsers(HashSet users) {
+  void removeEmptyUsers(HashSet users) {
     for (Iterator iterator = users.iterator(); iterator.hasNext();) {
       Object item = iterator.next();
       if (item == null || ((String) item).trim().isEmpty()) {
@@ -134,7 +136,7 @@ public class NotebookRestApi {
   }
 
   HashSet getAllUsers() {
-    HashSet userList = new HashSet();
+    HashSet usersList = new HashSet();
     try {
       GetUserList getUserListObj = new GetUserList();
       Collection realmsList = SecurityUtils.getRealmsList();
@@ -142,11 +144,13 @@ public class NotebookRestApi {
         Realm realm = iterator.next();
         String name = realm.getName();
         if (name.equals("iniRealm")) {
-          userList.addAll(getUserListObj.getUserList((IniRealm) realm));
+          usersList.addAll(getUserListObj.getUserList((IniRealm) realm));
         } else if (name.equals("ldapRealm")) {
-          userList.addAll(getUserListObj.getUserList((JndiLdapRealm) realm));
+          usersList.addAll(getUserListObj.getUserList((JndiLdapRealm) realm, ""));
+        } else if (name.equals("activeDirectoryRealm")) {
+          usersList.addAll(getUserListObj.getUserList((ActiveDirectoryGroupRealm) realm, ""));
         } else if (name.equals("jdbcRealm")) {
-          userList.addAll(getUserListObj.getUserList((JdbcRealm) realm));
+          usersList.addAll(getUserListObj.getUserList((JdbcRealm) realm));
         }
       }
 
@@ -154,7 +158,7 @@ public class NotebookRestApi {
       LOG.error("Exception in retrieving Users from realms ", e);
     }
 
-    return userList;
+    return usersList;
   }
 
   String notfoundUsersError(HashSet owners, HashSet readers, HashSet writers) {
@@ -376,7 +380,7 @@ public class NotebookRestApi {
     note.setName(noteName);
 
     //if creator is not anonymous, set default owner to creator
-    if (SecurityUtils.getPrincipal() != "anonymous") {
+    if (!SecurityUtils.getPrincipal().equals("anonymous")) {
       HashSet defaultOwners = new HashSet();
       defaultOwners.add(SecurityUtils.getPrincipal());
       notebookAuthorization.setOwners(note.id(), defaultOwners);
