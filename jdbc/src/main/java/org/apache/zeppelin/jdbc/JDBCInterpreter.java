@@ -83,7 +83,7 @@ public class JDBCInterpreter extends Interpreter {
   static final String COMMON_KEY = "common";
   static final String MAX_LINE_KEY = "max_count";
   static final String MAX_LINE_DEFAULT = "1000";
-  static final int INNER_MAX_LINE = 5000;
+  static final int INNER_MAX_LINE = 20000;
 
   static final String DEFAULT_KEY = "default";
   static final String DRIVER_KEY = "driver";
