@@ -533,6 +533,13 @@ public class NotebookServer extends WebSocketServlet implements
       }
       note.setName(noteName);
     }
+    //if creator is not anonymous, set default owner to creator
+    if (!message.principal.equals("anonymous")) {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(message.principal);
+      NotebookAuthorization notebookAuthorization = notebook.getNotebookAuthorization();
+      notebookAuthorization.setOwners(note.id(), defaultOwners);
+    }
 
     note.persist(subject);
     addConnectionToNote(note.id(), (NotebookSocket) conn);

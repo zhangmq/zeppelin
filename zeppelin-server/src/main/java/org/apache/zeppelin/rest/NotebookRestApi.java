@@ -304,6 +304,14 @@ public class NotebookRestApi {
     }
 
     note.setName(noteName);
+
+    //if creator is not anonymous, set default owner to creator
+    if (!SecurityUtils.getPrincipal().equals("anonymous")) {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(SecurityUtils.getPrincipal());
+      notebookAuthorization.setOwners(note.id(), defaultOwners);
+    }
+
     note.persist(subject);
     notebookServer.broadcastNote(note);
     notebookServer.broadcastNoteList(subject);
