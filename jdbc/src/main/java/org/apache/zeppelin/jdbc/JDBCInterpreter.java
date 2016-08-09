@@ -47,6 +47,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 
+//for sql limit
+import java.io.StringReader;
+import net.sf.jsqlparser.parser.CCJSqlParserManager;
+import net.sf.jsqlparser.statement.select.Limit;
+import net.sf.jsqlparser.statement.select.PlainSelect;
+import net.sf.jsqlparser.statement.select.Select;
+
 /**
  * JDBC interpreter for Zeppelin. This interpreter can also be used for accessing HAWQ,
  * GreenplumDB, MariaDB, MySQL, Postgres and Redshit.
@@ -76,6 +83,7 @@ public class JDBCInterpreter extends Interpreter {
   static final String COMMON_KEY = "common";
   static final String MAX_LINE_KEY = "max_count";
   static final String MAX_LINE_DEFAULT = "1000";
+  static final int INNER_MAX_LINE = 20000;
 
   static final String DEFAULT_KEY = "default";
   static final String DRIVER_KEY = "driver";
@@ -282,6 +290,39 @@ public class JDBCInterpreter extends Interpreter {
     }
   }
 
+  private String withLimit(String sql) throws Exception {
+    int maxLimit = getMaxResult();
+    
+    net.sf.jsqlparser.statement.Statement statement 
+      = new CCJSqlParserManager().parse(new StringReader(sql));
+    
+    if (maxLimit > INNER_MAX_LINE) maxLimit = INNER_MAX_LINE;
+
+    logger.info("Sql before limit: {}", sql);
+    if (statement instanceof Select) {
+      Select select = (Select) statement;
+      PlainSelect selectBody = (PlainSelect) select.getSelectBody();
+
+      Limit limit = selectBody.getLimit();
+      
+      if (limit == null) {
+        limit = new Limit();
+        limit.setRowCount(maxLimit);
+        selectBody.setLimit(limit);
+      }
+      
+      long rowcount = limit.getRowCount();
+      
+      if (rowcount > maxLimit) {
+        selectBody.getLimit().setRowCount(maxLimit);
+      }
+      logger.info("Sql after limit: {}", select.toString());
+      return select.toString();
+    } else {
+      throw new Exception("only select statement can be execute.");
+    }
+  }
+
   private InterpreterResult executeSql(String propertyKey, String sql,
       InterpreterContext interpreterContext) {
 
@@ -309,7 +350,7 @@ public class JDBCInterpreter extends Interpreter {
       ResultSet resultSet = null;
       try {
 
-        boolean isResultSetAvailable = statement.execute(sql);
+        boolean isResultSetAvailable = statement.execute(withLimit(sql));
 
         if (isResultSetAvailable) {
           resultSet = statement.getResultSet();
