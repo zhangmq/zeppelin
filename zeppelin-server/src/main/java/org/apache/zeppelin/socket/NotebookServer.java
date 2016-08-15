@@ -539,6 +539,8 @@ public class NotebookServer extends WebSocketServlet implements
       defaultOwners.add(message.principal);
       NotebookAuthorization notebookAuthorization = notebook.getNotebookAuthorization();
       notebookAuthorization.setOwners(note.id(), defaultOwners);
+      notebookAuthorization.setWriters(note.id(), defaultOwners);
+      notebookAuthorization.setReaders(note.id(), defaultOwners);
     }
 
     note.persist(subject);

@@ -58,6 +58,10 @@ import com.google.gson.reflect.TypeToken;
 import com.google.gson.GsonBuilder;
 import com.google.gson.stream.JsonReader;
 import java.io.StringReader;
+
+import org.apache.zeppelin.server.TextResponse;
+import org.apache.zeppelin.interpreter.InterpreterResult;
+
 /**
  * Rest api endpoint for the noteBook.
  */
@@ -258,6 +262,57 @@ public class NotebookRestApi {
     return new JsonResponse(Status.OK, "", exportJson).build();
   }
 
+  @GET
+  @Path("export/{notebookId}/paragraph/{paragraphId}")
+  @Produces({"text/csv"})
+  @ZeppelinApi
+  public Response exportParagraphAsCsv(
+    @PathParam("notebookId") String notebookId, 
+    @PathParam("paragraphId") String paragraphId
+  ) throws IOException {
+    LOG.info("Export paragraph data {} {} data:{}" , notebookId, paragraphId);
+
+    Note note = notebook.getNote(notebookId);
+    if (note == null) {
+      return new JsonResponse(Status.NOT_FOUND, "note not found.").build();
+    }
+
+    Paragraph p = note.getParagraph(paragraphId);
+    if (p == null) {
+      return new JsonResponse(Status.NOT_FOUND, "paragraph not found.").build();
+    }
+
+    InterpreterResult r = p.getResult();
+    if (r == null) {
+      return new JsonResponse(Status.NOT_FOUND, "execute result note found.").build();
+    }
+
+    return new TextResponse(Status.OK, r.message()).build();
+      
+  }
+/*
+  @GET
+  @Path("export/{notebookId}/paragraph/{paragraphId}?tsv")
+  @Produces({"text/tsv"})
+  @ZeppelinApi
+  public Response exportParagraphAsTsv(
+    @PathParam("notebookId") String notebookId, 
+    @PathParam("paragraphId") String paragraphId
+  ) throws IOException {
+    Note note = notebook.getNote(notebookId);
+    if (note == null) {
+      return new JsonResponse(Status.NOT_FOUND, "note not found.").build();
+    }
+
+    Paragraph p = note.getParagraph(paragraphId);
+    if (p == null) {
+      return new JsonResponse(Status.NOT_FOUND, "paragraph not found.").build();
+    }
+
+    return new TextResponse(Status.OK, p.getText()).build();
+      
+  }*/
+
   /**
    * import new note REST API
    * 
@@ -310,6 +365,8 @@ public class NotebookRestApi {
       HashSet defaultOwners = new HashSet();
       defaultOwners.add(SecurityUtils.getPrincipal());
       notebookAuthorization.setOwners(note.id(), defaultOwners);
+      notebookAuthorization.setReaders(note.id(), defaultOwners);
+      notebookAuthorization.setWriters(note.id(), defaultOwners);
     }
 
     note.persist(subject);
