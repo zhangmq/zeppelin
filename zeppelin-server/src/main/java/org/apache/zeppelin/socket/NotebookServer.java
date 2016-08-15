@@ -132,12 +132,13 @@ public class NotebookServer extends WebSocketServlet implements
           userAndRoles.addAll(roles);
         }
       }
+
       AuthenticationInfo subject = new AuthenticationInfo(messagereceived.principal);
 
       /** Lets be elegant here */
       switch (messagereceived.op) {
           case LIST_NOTES:
-            unicastNoteList(conn, subject);
+            unicastNoteList(conn, userAndRoles);
             break;
           case RELOAD_NOTES_FROM_REPO:
             broadcastReloadedNoteList(subject);
@@ -370,6 +371,7 @@ public class NotebookServer extends WebSocketServlet implements
 
     List<Note> notes = notebook.getAllNotes();
     List<Map<String, String>> notesInfo = new LinkedList<>();
+
     for (Note note : notes) {
       Map<String, String> info = new HashMap<>();
 
@@ -394,8 +396,34 @@ public class NotebookServer extends WebSocketServlet implements
     broadcastAll(new Message(OP.NOTES_INFO).put("notes", notesInfo));
   }
 
-  public void unicastNoteList(NotebookSocket conn, AuthenticationInfo subject) {
-    List<Map<String, String>> notesInfo = generateNotebooksInfo(false, subject);
+  public void unicastNoteList(NotebookSocket conn, HashSet<String> userAndRoles) {
+    Notebook notebook = notebook();
+
+    ZeppelinConfiguration conf = notebook.getConf();
+    String homescreenNotebookId = conf.getString(ConfVars.ZEPPELIN_NOTEBOOK_HOMESCREEN);
+    boolean hideHomeScreenNotebookFromList = conf
+            .getBoolean(ConfVars.ZEPPELIN_NOTEBOOK_HOMESCREEN_HIDE);
+
+    List<Note> notes = notebook.getAllNotes();
+    List<Map<String, String>> notesInfo = new LinkedList<>();
+    NotebookAuthorization notebookAuthorization = notebook.getNotebookAuthorization();
+    
+    for (Note note : notes) {
+      Map<String, String> info = new HashMap<>();
+
+      if (hideHomeScreenNotebookFromList && note.id().equals(homescreenNotebookId)) {
+        continue;
+      }
+
+      if (!notebookAuthorization.isReader(note.id(), userAndRoles)) {
+        continue;
+      }
+
+      info.put("id", note.id());
+      info.put("name", note.getName());
+      notesInfo.add(info);
+    }
+
     unicast(new Message(OP.NOTES_INFO).put("notes", notesInfo), conn);
   }
 
@@ -502,7 +530,7 @@ public class NotebookServer extends WebSocketServlet implements
       AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
       note.persist(subject);
       broadcastNote(note);
-      broadcastNoteList(subject);
+      //broadcastNoteList(subject);
     }
   }
 
@@ -546,7 +574,7 @@ public class NotebookServer extends WebSocketServlet implements
     note.persist(subject);
     addConnectionToNote(note.id(), (NotebookSocket) conn);
     conn.send(serializeMessage(new Message(OP.NEW_NOTE).put("note", note)));
-    broadcastNoteList(subject);
+    //broadcastNoteList(subject);
   }
 
   private void removeNote(NotebookSocket conn, HashSet<String> userAndRoles,
@@ -568,7 +596,7 @@ public class NotebookServer extends WebSocketServlet implements
     AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
     notebook.removeNote(noteId, subject);
     removeNote(noteId);
-    broadcastNoteList(subject);
+    //broadcastNoteList(subject);
   }
 
   private void updateParagraph(NotebookSocket conn, HashSet<String> userAndRoles,
@@ -610,7 +638,7 @@ public class NotebookServer extends WebSocketServlet implements
     AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
     addConnectionToNote(newNote.id(), (NotebookSocket) conn);
     conn.send(serializeMessage(new Message(OP.NEW_NOTE).put("note", newNote)));
-    broadcastNoteList(subject);
+    //broadcastNoteList(subject);
   }
 
   protected Note importNote(NotebookSocket conn, HashSet<String> userAndRoles,
@@ -624,7 +652,7 @@ public class NotebookServer extends WebSocketServlet implements
       note = notebook.importNote(noteJson, noteName, subject);
       note.persist(subject);
       broadcastNote(note);
-      broadcastNoteList(subject);
+      //broadcastNoteList(subject);
     }
     return note;
   }
