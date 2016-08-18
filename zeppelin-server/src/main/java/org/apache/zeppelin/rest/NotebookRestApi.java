@@ -62,6 +62,7 @@ import java.io.StringReader;
 import org.apache.zeppelin.server.TextResponse;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import java.text.SimpleDateFormat;
+import java.lang.reflect.Field;
 
 /**
  * Rest api endpoint for the noteBook.
@@ -284,13 +285,9 @@ public class NotebookRestApi {
       return new JsonResponse(Status.NOT_FOUND, "paragraph not found.").build();
     }
 
-    InterpreterResult r = p.getResult();
-    if (r == null) {
-      return new JsonResponse(Status.NOT_FOUND, "execute result note found.").build();
-    }
+    Object result = p.getReturn();
 
-    String content = r.message();
-    content = content == null ? "" : "\ufeff" + content;
+    String content = "\ufeff" + getMsg(result);
 
     SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
     Date now = Calendar.getInstance().getTime();        
@@ -298,33 +295,23 @@ public class NotebookRestApi {
 
 
     if (format.toLowerCase().equals("csv")) {
-      return new TextResponse(Status.OK, content.replace('\t', ','), fileName).build();
+      return new TextResponse(Status.OK, content.replace('\t', ','), fileName + ".csv").build();
     }
 
-    return new TextResponse(Status.OK, content, fileName).build();      
+    return new TextResponse(Status.OK, content, fileName + ".tsv").build();      
   }
-/*
-  @GET
-  @Path("export/{notebookId}/paragraph/{paragraphId}?tsv")
-  @Produces({"text/tsv"})
-  @ZeppelinApi
-  public Response exportParagraphAsTsv(
-    @PathParam("notebookId") String notebookId, 
-    @PathParam("paragraphId") String paragraphId
-  ) throws IOException {
-    Note note = notebook.getNote(notebookId);
-    if (note == null) {
-      return new JsonResponse(Status.NOT_FOUND, "note not found.").build();
-    }
 
-    Paragraph p = note.getParagraph(paragraphId);
-    if (p == null) {
-      return new JsonResponse(Status.NOT_FOUND, "paragraph not found.").build();
+  private String getMsg(Object result) {
+    if (result == null) return "";
+    
+    try {
+      Field f = result.getClass().getDeclaredField("msg");
+      f.setAccessible(true);
+      return (String) f.get(result);
+    } catch (Exception ex) {
+      return "";
     }
-
-    return new TextResponse(Status.OK, p.getText()).build();
-      
-  }*/
+  }
 
   /**
    * import new note REST API
