@@ -499,6 +499,10 @@
               <!--The following files are mechanical-->
               <exclude>r/R/rzeppelin/DESCRIPTION</exclude>
               <exclude>r/R/rzeppelin/NAMESPACE</exclude>
+              <!--vs code -->
+              <exclude>javac-services.0.*</exclude>
+              <exclude>classpath.txt</exclude>
+              <exclude>javaconfig.json</exclude>
             </excludes>
           </configuration>
 

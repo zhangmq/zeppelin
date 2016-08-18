@@ -300,6 +300,11 @@
             <exclude>**/metastore_db/</exclude>
             <exclude>**/README.md</exclude>
             <exclude>src/test/java/com/webautomation/*</exclude>
+
+            <!--vs code -->
+            <exclude>javac-services.0.*</exclude>
+            <exclude>classpath.txt</exclude>
+            <exclude>javaconfig.json</exclude>
           </excludes>
         </configuration>
       </plugin>
