@@ -268,7 +268,8 @@ public class NotebookRestApi {
   @ZeppelinApi
   public Response exportParagraphAsCsv(
     @PathParam("notebookId") String notebookId, 
-    @PathParam("paragraphId") String paragraphId
+    @PathParam("paragraphId") String paragraphId,
+    @QueryParam("format") String format
   ) throws IOException {
     LOG.info("Export paragraph data {} {} data:{}" , notebookId, paragraphId);
 
@@ -287,8 +288,14 @@ public class NotebookRestApi {
       return new JsonResponse(Status.NOT_FOUND, "execute result note found.").build();
     }
 
-    return new TextResponse(Status.OK, r.message()).build();
-      
+    String content = r.message();
+    content = content == null ? "" : "\ufeff" + content;
+
+    if (format.toLowerCase().equals("csv")) {
+      return new TextResponse(Status.OK, content.replace('\t', ',')).build();
+    }
+
+    return new TextResponse(Status.OK, content).build();      
   }
 /*
   @GET
