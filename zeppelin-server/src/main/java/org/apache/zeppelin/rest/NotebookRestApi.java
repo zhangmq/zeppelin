@@ -295,7 +295,10 @@ public class NotebookRestApi {
 
 
     if (format.toLowerCase().equals("csv")) {
-      return new TextResponse(Status.OK, content.replace(',', ';').replace('\t', ','), fileName + ".csv").build();
+      return new TextResponse(
+        Status.OK, 
+        content.replace(',', ';').replace('\t', ','), 
+        fileName + ".csv").build();
     }
 
     return new TextResponse(Status.OK, content, fileName + ".tsv").build();      
