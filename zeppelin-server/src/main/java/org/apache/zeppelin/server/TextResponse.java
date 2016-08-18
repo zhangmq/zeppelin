@@ -18,6 +18,9 @@
 package org.apache.zeppelin.server;
 
 import javax.ws.rs.core.Response.ResponseBuilder;
+import java.net.URLEncoder;
+import java.net.URLDecoder;
+import java.io.IOException;
 
 /**
  * text response builder.
@@ -26,14 +29,24 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 public class TextResponse {
   private javax.ws.rs.core.Response.Status status;
   private String body;
+  private String fileName;
   
-  public TextResponse(javax.ws.rs.core.Response.Status status, String body) {
+  public TextResponse(
+    javax.ws.rs.core.Response.Status status, 
+    String body, 
+    String fileName) throws IOException {
     this.status = status;
     this.body = body;
+
+    fileName = URLEncoder.encode(fileName, "UTF-8");
+    this.fileName = URLDecoder.decode(fileName, "ISO8859_1");
   }
 
   public javax.ws.rs.core.Response build() {
-    ResponseBuilder r = javax.ws.rs.core.Response.status(status).entity(this.body);
+    ResponseBuilder r = javax.ws.rs.core.Response
+      .status(status)
+      .header("Content-disposition", "attachment; filename=" + this.fileName)
+      .entity(this.body);
 
     return r.build();
   }

@@ -61,6 +61,7 @@ import java.io.StringReader;
 
 import org.apache.zeppelin.server.TextResponse;
 import org.apache.zeppelin.interpreter.InterpreterResult;
+import java.text.SimpleDateFormat;
 
 /**
  * Rest api endpoint for the noteBook.
@@ -291,11 +292,16 @@ public class NotebookRestApi {
     String content = r.message();
     content = content == null ? "" : "\ufeff" + content;
 
+    SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
+    Date now = Calendar.getInstance().getTime();        
+    String fileName = "Export-" + df.format(now);
+
+
     if (format.toLowerCase().equals("csv")) {
-      return new TextResponse(Status.OK, content.replace('\t', ',')).build();
+      return new TextResponse(Status.OK, content.replace('\t', ','), fileName).build();
     }
 
-    return new TextResponse(Status.OK, content).build();      
+    return new TextResponse(Status.OK, content, fileName).build();      
   }
 /*
   @GET
