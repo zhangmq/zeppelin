@@ -287,7 +287,7 @@ public class NotebookRestApi {
 
     Object result = p.getReturn();
 
-    String content = "\ufeff" + getMsg(result);
+    String content = getMsg(result);
 
     SimpleDateFormat df = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
     Date now = Calendar.getInstance().getTime();        
@@ -295,7 +295,7 @@ public class NotebookRestApi {
 
 
     if (format.toLowerCase().equals("csv")) {
-      return new TextResponse(Status.OK, content.replace('\t', ','), fileName + ".csv").build();
+      return new TextResponse(Status.OK, content.replace(',', ';').replace('\t', ','), fileName + ".csv").build();
     }
 
     return new TextResponse(Status.OK, content, fileName + ".tsv").build();      
@@ -303,11 +303,11 @@ public class NotebookRestApi {
 
   private String getMsg(Object result) {
     if (result == null) return "";
-    
+
     try {
       Field f = result.getClass().getDeclaredField("msg");
       f.setAccessible(true);
-      return (String) f.get(result);
+      return "\ufeff" + ((String) f.get(result));
     } catch (Exception ex) {
       return "";
     }
