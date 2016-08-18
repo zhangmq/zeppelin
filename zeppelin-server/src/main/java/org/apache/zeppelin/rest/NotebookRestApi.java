@@ -300,7 +300,7 @@ public class NotebookRestApi {
         content.replace(',', ';').replace('\t', ','), 
         fileName + ".csv").build();
     }
-
+    LOG.info("rest", gson.toJson(note));
     return new TextResponse(Status.OK, content, fileName + ".tsv").build();      
   }
 

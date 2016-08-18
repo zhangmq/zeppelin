@@ -466,6 +466,7 @@ public class NotebookServer extends WebSocketServlet implements
             notebookAuthorization.getReaders(noteId));
         return;
       }
+      LOG.info("socket", gson.toJson(note));
       addConnectionToNote(note.id(), conn);
       conn.send(serializeMessage(new Message(OP.NOTE).put("note", note)));
       sendAllAngularObjects(note, conn);
