@@ -64,7 +64,6 @@ import org.apache.zeppelin.interpreter.InterpreterResult;
 import java.text.SimpleDateFormat;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.NoSuchFieldException;
 
 /**
  * Rest api endpoint for the noteBook.
@@ -310,13 +309,16 @@ public class NotebookRestApi {
     if (result == null) return "";
 
     try {
-      Field f = result.getClass().getDeclaredField("msg");
-      f.setAccessible(true);
-      return "\ufeff" + ((String) f.get(result));
-    } catch (NoSuchFieldException ex) {
-      Method m = result.getClass().getDeclaredMethod("get", null);
-      Object r = m.invoke(result, "msg");
-      return "\ufeff" + ((String)r);
+      if (result instanceof InterpreterResult) {
+        Field f = result.getClass().getDeclaredField("msg");
+        f.setAccessible(true);
+        return "\ufeff" + ((String) f.get(result));
+      } else {
+        Method m = result.getClass().getSuperclass().getDeclaredMethod(
+          "get", new Class[] { Object.class });
+        Object r = m.invoke(result, "msg");
+        return "\ufeff" + ((String) r);
+      }
     } catch (Exception ex) {
       return ex.toString();
     }
