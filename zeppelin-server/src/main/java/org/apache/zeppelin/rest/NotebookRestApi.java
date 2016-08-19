@@ -63,6 +63,8 @@ import org.apache.zeppelin.server.TextResponse;
 import org.apache.zeppelin.interpreter.InterpreterResult;
 import java.text.SimpleDateFormat;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.NoSuchFieldException;
 
 /**
  * Rest api endpoint for the noteBook.
@@ -300,7 +302,7 @@ public class NotebookRestApi {
         content.replace(',', ';').replace('\t', ','), 
         fileName + ".csv").build();
     }
-    LOG.info("rest", gson.toJson(note));
+
     return new TextResponse(Status.OK, content, fileName + ".tsv").build();      
   }
 
@@ -311,8 +313,12 @@ public class NotebookRestApi {
       Field f = result.getClass().getDeclaredField("msg");
       f.setAccessible(true);
       return "\ufeff" + ((String) f.get(result));
+    } catch (NoSuchFieldException ex) {
+      Method m = result.getClass().getDeclaredMethod("get", null);
+      Object r = m.invoke(result, "msg");
+      return "\ufeff" + ((String)r);
     } catch (Exception ex) {
-      return "";
+      return ex.toString();
     }
   }
 
