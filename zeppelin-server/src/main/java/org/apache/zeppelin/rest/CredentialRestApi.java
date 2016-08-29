@@ -35,6 +35,8 @@ import javax.ws.rs.core.Response.Status;
 import java.io.IOException;
 import java.util.Map;
 
+import java.util.HashSet;
+
 /**
  * Credential Rest API
  *
@@ -62,6 +64,15 @@ public class CredentialRestApi {
    */
   @PUT
   public Response putCredentials(String message) throws IOException {
+    String principal = SecurityUtils.getPrincipal();
+    HashSet<String> roles = SecurityUtils.getRoles();
+
+    if (!roles.contains("admin")) {
+      return new JsonResponse(
+        Status.FORBIDDEN, 
+        "Only users has 'admin' role can assess this api ").build();
+    }
+    
     Map<String, String> messageMap = gson.fromJson(message,
       new TypeToken<Map<String, String>>(){}.getType());
     String entity = messageMap.get("entity");
