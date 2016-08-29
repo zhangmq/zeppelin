@@ -47,6 +47,9 @@ import com.google.gson.Gson;
 import org.sonatype.aether.RepositoryException;
 import org.sonatype.aether.repository.RemoteRepository;
 
+import java.util.HashSet;
+import org.apache.zeppelin.utils.SecurityUtils;
+
 /**
  * Interpreter Rest API
  *
@@ -93,6 +96,15 @@ public class InterpreterRestApi {
   @ZeppelinApi
   public Response newSettings(String message) {
     try {
+      String principal = SecurityUtils.getPrincipal();
+      HashSet<String> roles = SecurityUtils.getRoles();
+
+      if (!roles.contains("admin")) {
+        return new JsonResponse(
+          Status.FORBIDDEN, 
+          "Only users has 'admin' role can assess this api ").build();
+      }
+      
       NewInterpreterSettingRequest request = gson.fromJson(message,
           NewInterpreterSettingRequest.class);
       Properties p = new Properties();
@@ -126,6 +138,15 @@ public class InterpreterRestApi {
     logger.info("Update interpreterSetting {}", settingId);
 
     try {
+      String principal = SecurityUtils.getPrincipal();
+      HashSet<String> roles = SecurityUtils.getRoles();
+
+      if (!roles.contains("admin")) {
+        return new JsonResponse(
+          Status.FORBIDDEN, 
+          "Only users has 'admin' role can assess this api ").build();
+      }
+
       UpdateInterpreterSettingRequest request = gson.fromJson(message,
           UpdateInterpreterSettingRequest.class);
       interpreterFactory.setPropertyAndRestart(settingId,
@@ -155,6 +176,15 @@ public class InterpreterRestApi {
   @Path("setting/{settingId}")
   @ZeppelinApi
   public Response removeSetting(@PathParam("settingId") String settingId) throws IOException {
+    String principal = SecurityUtils.getPrincipal();
+    HashSet<String> roles = SecurityUtils.getRoles();
+
+    if (!roles.contains("admin")) {
+      return new JsonResponse(
+        Status.FORBIDDEN, 
+        "Only users has 'admin' role can assess this api ").build();
+    }
+    
     logger.info("Remove interpreterSetting {}", settingId);
     interpreterFactory.remove(settingId);
     return new JsonResponse(Status.OK).build();
@@ -169,6 +199,15 @@ public class InterpreterRestApi {
   public Response restartSetting(@PathParam("settingId") String settingId) {
     logger.info("Restart interpreterSetting {}", settingId);
     try {
+      String principal = SecurityUtils.getPrincipal();
+      HashSet<String> roles = SecurityUtils.getRoles();
+
+      if (!roles.contains("admin")) {
+        return new JsonResponse(
+          Status.FORBIDDEN, 
+          "Only users has 'admin' role can assess this api ").build();
+      }
+
       interpreterFactory.restart(settingId);
     } catch (InterpreterException e) {
       logger.error("Exception in InterpreterRestApi while restartSetting ", e);
@@ -215,6 +254,15 @@ public class InterpreterRestApi {
   @ZeppelinApi
   public Response addRepository(String message) {
     try {
+      String principal = SecurityUtils.getPrincipal();
+      HashSet<String> roles = SecurityUtils.getRoles();
+
+      if (!roles.contains("admin")) {
+        return new JsonResponse(
+          Status.FORBIDDEN, 
+          "Only users has 'admin' role can assess this api ").build();
+      }
+      
       Repository request = gson.fromJson(message, Repository.class);
       interpreterFactory.addRepository(
           request.getId(),
@@ -241,6 +289,15 @@ public class InterpreterRestApi {
   public Response removeRepository(@PathParam("repoId") String repoId) {
     logger.info("Remove repository {}", repoId);
     try {
+      String principal = SecurityUtils.getPrincipal();
+      HashSet<String> roles = SecurityUtils.getRoles();
+
+      if (!roles.contains("admin")) {
+        return new JsonResponse(
+          Status.FORBIDDEN, 
+          "Only users has 'admin' role can assess this api ").build();
+      }
+
       interpreterFactory.removeRepository(repoId);
     } catch (Exception e) {
       logger.error("Exception in InterpreterRestApi while removing repository ", e);
