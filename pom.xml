@@ -69,7 +69,6 @@
     <module>ignite</module>
     <module>kylin</module>
     <module>python</module>
-    <module>r</module>
     <module>lens</module>
     <module>cassandra</module>
     <module>elasticsearch</module>
