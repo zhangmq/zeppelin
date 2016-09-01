@@ -106,3 +106,6 @@ tramp
 **/dependency-reduced-pom.xml
 classpath.txt
 javac-services.*
+/figure
+.Rhistory
+/var/folders/kh/
