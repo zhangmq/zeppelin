@@ -337,6 +337,19 @@ public class NotebookRestApi {
   public Response importNotebook(String req) throws IOException {
     AuthenticationInfo subject = new AuthenticationInfo(SecurityUtils.getPrincipal());
     Note newNote = notebook.importNote(req, null, subject);
+
+    //if creator is not anonymous, set default owner to creator
+    if (!SecurityUtils.getPrincipal().equals("anonymous")) {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(SecurityUtils.getPrincipal());
+      notebookAuthorization.setOwners(newNote.id(), defaultOwners);
+      notebookAuthorization.setReaders(newNote.id(), defaultOwners);
+      notebookAuthorization.setWriters(newNote.id(), defaultOwners);
+    }
+
+    newNote.persist(subject);
+
+
     return new JsonResponse<>(Status.CREATED, "", newNote.getId()).build();
   }
   
@@ -426,6 +439,17 @@ public class NotebookRestApi {
     String newNoteName = request.getName();
     AuthenticationInfo subject = new AuthenticationInfo(SecurityUtils.getPrincipal());
     Note newNote = notebook.cloneNote(notebookId, newNoteName, subject);
+
+    //if creator is not anonymous, set default owner to creator
+    if (!SecurityUtils.getPrincipal().equals("anonymous")) {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(SecurityUtils.getPrincipal());
+      notebookAuthorization.setOwners(newNote.id(), defaultOwners);
+      notebookAuthorization.setReaders(newNote.id(), defaultOwners);
+      notebookAuthorization.setWriters(newNote.id(), defaultOwners);
+    }
+
+    newNote.persist(subject);
     notebookServer.broadcastNote(newNote);
     notebookServer.broadcastNoteList(subject);
     return new JsonResponse<>(Status.CREATED, "", newNote.getId()).build();
