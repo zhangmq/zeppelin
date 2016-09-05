@@ -636,6 +636,19 @@ public class NotebookServer extends WebSocketServlet implements
     String name = (String) fromMessage.get("name");
     Note newNote = notebook.cloneNote(noteId, name, new AuthenticationInfo(fromMessage.principal));
     AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
+
+    //if creator is not anonymous, set default owner to creator
+    if (!fromMessage.principal.equals("anonymous")) {
+      HashSet defaultOwners = new HashSet();
+      defaultOwners.add(fromMessage.principal);
+      NotebookAuthorization notebookAuthorization = notebook.getNotebookAuthorization();
+      notebookAuthorization.setOwners(newNote.id(), defaultOwners);
+      notebookAuthorization.setWriters(newNote.id(), defaultOwners);
+      notebookAuthorization.setReaders(newNote.id(), defaultOwners);
+    }
+
+    newNote.persist(subject);
+    
     addConnectionToNote(newNote.id(), (NotebookSocket) conn);
     conn.send(serializeMessage(new Message(OP.NEW_NOTE).put("note", newNote)));
     //broadcastNoteList(subject);
@@ -650,6 +663,17 @@ public class NotebookServer extends WebSocketServlet implements
       String noteJson = gson.toJson(fromMessage.get("notebook"));
       AuthenticationInfo subject = new AuthenticationInfo(fromMessage.principal);
       note = notebook.importNote(noteJson, noteName, subject);
+
+      //if creator is not anonymous, set default owner to creator
+      if (!fromMessage.principal.equals("anonymous")) {
+        HashSet defaultOwners = new HashSet();
+        defaultOwners.add(fromMessage.principal);
+        NotebookAuthorization notebookAuthorization = notebook.getNotebookAuthorization();
+        notebookAuthorization.setOwners(note.id(), defaultOwners);
+        notebookAuthorization.setWriters(note.id(), defaultOwners);
+        notebookAuthorization.setReaders(note.id(), defaultOwners);
+      }
+      
       note.persist(subject);
       broadcastNote(note);
       //broadcastNoteList(subject);
